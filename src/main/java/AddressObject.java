@@ -28,12 +28,10 @@ public class AddressObject {
 
     @Override
     public String toString() {
-        return "AddressObject{" +
-                "city='" + city + '\'' +
-                ", street='" + street + '\'' +
-                ", house=" + house +
-                ", floor=" + floor +
-                '}';
+        return "г." + city + ", " +
+                street + ", " +
+                "д." + house + ", " +
+                "этажность " + floor;
     }
 
     public String getCity() {
