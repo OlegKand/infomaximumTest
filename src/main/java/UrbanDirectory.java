@@ -1,10 +1,20 @@
+import org.xml.sax.Attributes;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
+
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class UrbanDirectory {
+    private static List<AddressObject> addressList = new ArrayList<>();
+
     private static final String FILE_NOT_FOUND = "Файл не найден или введен некорректный путь, пожалуйста проверьте правильность пути и повторите попытку";
     private static final String FILE_INCORRECT_FORMAT = "Неверный формат файла, пожалуйста укажите путь к файлам форматов .csv или .xml";
     private static final String FILE_IS_EMPTY = "Файл не содержит данных";
@@ -20,18 +30,14 @@ public class UrbanDirectory {
             String filePath = enter.replaceAll("\\s+", "").replaceAll("\n", "");
             if(filePath.equalsIgnoreCase("Q")) break;
 
-            List<AddressObject> addressList = new ArrayList<>();
+            //List<AddressObject> addressList = new ArrayList<>();
 
             //проверка формата файла
             if (filePath.endsWith(".csv")) {
                 addressList = getAddressBookFromCSV(filePath);
             } else if (filePath.endsWith(".xml")) {
                 addressList = getAddressBookFromXML(filePath);
-            } else if (!filePath.equalsIgnoreCase("Q")) {
-                System.out.println(FILE_INCORRECT_FORMAT);
-            } else break;
-
-            System.out.println("Файл содержит :" + addressList.size() + " записей");
+            } else System.out.println(FILE_INCORRECT_FORMAT);
 
             getDuplicateRecords(addressList);
             getInfoFloor(addressList);
@@ -41,7 +47,7 @@ public class UrbanDirectory {
     }
 
     public static List<AddressObject> getAddressBookFromCSV(String filePath){
-        List<AddressObject> addressList = new ArrayList<>();
+        addressList.clear();
         try {
             InputStreamReader in = new InputStreamReader(new FileInputStream(filePath), "WINDOWS-1251");
             BufferedReader reader = new BufferedReader(in);
@@ -67,7 +73,19 @@ public class UrbanDirectory {
     }
 
     public static List<AddressObject> getAddressBookFromXML(String filePath) {
-        return null;
+        addressList.clear();
+        try {
+            SAXParserFactory factory = SAXParserFactory.newInstance();
+            SAXParser parser = factory.newSAXParser();
+
+            XMLHandler handler = new XMLHandler();
+            parser.parse(new File(filePath), handler);
+
+        } catch (ParserConfigurationException | SAXException | IOException e) {
+            e.printStackTrace();
+        }
+
+        return addressList;
     }
 
     // Отображает дублирующиеся записи с количеством повторений.
@@ -109,6 +127,22 @@ public class UrbanDirectory {
             }
             System.out.println();
         } );
+    }
+
+    private static class XMLHandler extends DefaultHandler {
+
+        @Override
+        public void startElement(String uri, String localName, String qName, Attributes attributes) {
+            if (qName.equals("item")) {
+                byte[] cityBuffer = attributes.getValue("city").getBytes(StandardCharsets.UTF_8);
+                String city = new String(cityBuffer);
+                byte[] streetBuffer = attributes.getValue("street").getBytes(StandardCharsets.UTF_8);
+                String street = new String(streetBuffer);
+                Integer house = Integer.parseInt(attributes.getValue("house"));
+                Integer floor = Integer.parseInt(attributes.getValue("floor"));
+                addressList.add(new AddressObject(city, street, house, floor));
+            }
+        }
     }
 }
 
