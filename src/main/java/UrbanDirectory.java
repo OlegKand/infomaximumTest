@@ -28,20 +28,23 @@ public class UrbanDirectory {
             System.out.println("\nДля выхода из программы введите Q\nВведите путь файла: ");
             String enter = scanner.nextLine();
             String filePath = enter.replaceAll("\\s+", "").replaceAll("\n", "");
-            if(filePath.equalsIgnoreCase("Q")) break;
-
-            //List<AddressObject> addressList = new ArrayList<>();
 
             //проверка формата файла
             if (filePath.endsWith(".csv")) {
                 addressList = getAddressBookFromCSV(filePath);
+                if (!addressList.isEmpty()) {
+                    getDuplicateRecords(getAddressBookFromCSV(filePath));
+                    getInfoFloor(getAddressBookFromCSV(filePath));
+                }
             } else if (filePath.endsWith(".xml")) {
                 addressList = getAddressBookFromXML(filePath);
-            } else System.out.println(FILE_INCORRECT_FORMAT);
-
-            getDuplicateRecords(addressList);
-            getInfoFloor(addressList);
-
+                if (!addressList.isEmpty()) {
+                    getDuplicateRecords(getAddressBookFromXML(filePath));
+                    getInfoFloor(getAddressBookFromXML(filePath));
+                }
+            } else if (!filePath.equalsIgnoreCase("Q")){
+                System.out.println(FILE_INCORRECT_FORMAT);
+            } else break;
         }
         scanner.close();
     }
@@ -49,7 +52,7 @@ public class UrbanDirectory {
     public static List<AddressObject> getAddressBookFromCSV(String filePath){
         addressList.clear();
         try {
-            InputStreamReader in = new InputStreamReader(new FileInputStream(filePath), "WINDOWS-1251");
+            InputStreamReader in = new InputStreamReader(new FileInputStream(filePath));
             BufferedReader reader = new BufferedReader(in);
 
             String str = reader.readLine();
@@ -81,14 +84,18 @@ public class UrbanDirectory {
             XMLHandler handler = new XMLHandler();
             parser.parse(new File(filePath), handler);
 
-        } catch (ParserConfigurationException | SAXException | IOException e) {
+        } catch (ParserConfigurationException | SAXException e) {
             e.printStackTrace();
+        } catch (IOException e){
+            System.out.println(FILE_NOT_FOUND);
+        } catch (NullPointerException e){
+            System.out.println(FILE_IS_EMPTY);
         }
 
         return addressList;
     }
 
-    // Отображает дублирующиеся записи с количеством повторений.
+    // 1. Отображает дублирующиеся записи с количеством повторений.
     public static void getDuplicateRecords(List<AddressObject> list){
         Map<AddressObject, Long> duplicateList = list.stream()
                 .collect(Collectors.toMap(
@@ -101,11 +108,13 @@ public class UrbanDirectory {
                 countDuplicate.getAndIncrement();
             }
         });
-        System.out.println("Количество дублирующихся записей - " + countDuplicate);
-        System.out.println();
+        if (list.size() != 0) {
+            System.out.println("Количество дублирующихся записей - " + countDuplicate);
+            System.out.println();
+        }
     }
 
-    // Получает на вход прочитанные данные из файла и отображает, сколько в каждом городе: 1, 2, 3, 4 и 5 этажных зданий.
+    // 2. Получает на вход прочитанные данные из файла и отображает, сколько в каждом городе: 1, 2, 3, 4 и 5 этажных зданий.
     public static void getInfoFloor(List<AddressObject> list) {
 
         Map<String, Map<Integer, List<AddressObject>>> groupingList = list.stream()
