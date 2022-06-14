@@ -19,7 +19,6 @@ public class UrbanDirectory {
     private static final String FILE_INCORRECT_FORMAT = "Неверный формат файла, пожалуйста укажите путь к файлам форматов .csv или .xml";
     private static final String FILE_IS_EMPTY = "Файл не содержит данных";
 
-
     public static void main(String[] args) {
 
         Scanner scanner = new Scanner(System.in);
@@ -29,19 +28,20 @@ public class UrbanDirectory {
             String enter = scanner.nextLine();
             String filePath = enter.replaceAll("\\s+", "").replaceAll("\n", "");
 
-            //проверка формата файла
             if (filePath.endsWith(".csv")) {
                 addressList = getAddressBookFromCSV(filePath);
                 if (!addressList.isEmpty()) {
                     getDuplicateRecords(getAddressBookFromCSV(filePath));
                     getInfoFloor(getAddressBookFromCSV(filePath));
                 }
+
             } else if (filePath.endsWith(".xml")) {
                 addressList = getAddressBookFromXML(filePath);
                 if (!addressList.isEmpty()) {
                     getDuplicateRecords(getAddressBookFromXML(filePath));
                     getInfoFloor(getAddressBookFromXML(filePath));
                 }
+
             } else if (!filePath.equalsIgnoreCase("Q")){
                 System.out.println(FILE_INCORRECT_FORMAT);
             } else break;
@@ -91,17 +91,17 @@ public class UrbanDirectory {
         } catch (NullPointerException e){
             System.out.println(FILE_IS_EMPTY);
         }
-
         return addressList;
     }
 
     // 1. Отображает дублирующиеся записи с количеством повторений.
     public static void getDuplicateRecords(List<AddressObject> list){
+        AtomicInteger countDuplicate = new AtomicInteger(0);
         Map<AddressObject, Long> duplicateList = list.stream()
                 .collect(Collectors.toMap(
                         Function.identity(), v -> 1L, Long::sum
                 ));
-        AtomicInteger countDuplicate = new AtomicInteger(0);
+
         duplicateList.forEach((k,v) -> {
             if (v > 1) {
                 System.out.printf("Запись %s дублируется %d раз\n", k.toString(), v);
@@ -118,16 +118,9 @@ public class UrbanDirectory {
     public static void getInfoFloor(List<AddressObject> list) {
 
         Map<String, Map<Integer, List<AddressObject>>> groupingList = list.stream()
-                .collect(
-                        Collectors.groupingBy(AddressObject::getCity, Collectors.groupingBy(AddressObject::getFloor))
-                ).entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        (oldValue, newValue) -> oldValue,
-                        LinkedHashMap::new
-                ));
+                        .collect((
+                                Collectors.groupingBy(AddressObject::getCity, Collectors.groupingBy(AddressObject::getFloor))
+                                ));
 
         groupingList.forEach((k,v) -> {
             System.out.printf("В городе %s :\n", k);
@@ -139,7 +132,6 @@ public class UrbanDirectory {
     }
 
     private static class XMLHandler extends DefaultHandler {
-
         @Override
         public void startElement(String uri, String localName, String qName, Attributes attributes) {
             if (qName.equals("item")) {
